@@ -21,6 +21,5 @@ char allC(const Historique& moi, const Historique& adv);
 char rancunier(const Historique& moi, const Historique& adv);
 char majoritaire(const Historique& moi, const Historique& adv);
 
-
 std::vector<Joueur> populationCours();
 std::vector<Joueur> populationElargie();

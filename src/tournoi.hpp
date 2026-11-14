@@ -1,5 +1,4 @@
 #pragma once
-#include <utility>
 #include "strategies.hpp"
 
 struct Regles {
@@ -12,6 +11,6 @@ struct Regles {
 int gain(char moi, char adv);
 char appliquerBruit(char coup, double bruit);
 int longueurPartie(const Regles& regles);
-std::pair<int, int> jouerPartie(const Joueur& a, const Joueur& b, int nbTours, double bruit);
+void jouerPartie(const Joueur& a, const Joueur& b, int nbTours, double bruit, int& scoreA, int& scoreB);
 std::vector<long> jouerTournoi(const std::vector<Joueur>& joueurs, const Regles& regles);
 void afficherClassement(const std::vector<Joueur>& joueurs, const std::vector<long>& scores);

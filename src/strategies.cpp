@@ -1,67 +1,87 @@
-#include <algorithm>
 #include <cstdlib>
 #include "strategies.hpp"
 
-/* Renvoie vrai avec la probabilité p : tire un nombre entre 0 et 999, vrai s'il est plus petit que p × 1000 */
+/* Renvoie true avec une probabilité p (on tire un nombre entre 0 et 999) */
 bool hasard(double p) {
     int tirage = rand() % 1000;
     return tirage < p * 1000;
 }
 
-/* ALL-D : joue toujours D */
+/* Regarde si l'adversaire a joué D au moins une fois depuis le début */
+bool aDejaTrahi(const Historique& adv) {
+    for (char coup : adv) {
+        if (coup == 'D') return true;
+    }
+    return false;
+}
+
+/* ALL-D trahit à chaque tour */
 char allD(const Historique& moi, const Historique& adv) {
     return 'D';
 }
 
-/* RANDOM : joue C ou D au hasard, une chance sur deux */
+/* RANDOM joue C ou D à pile ou face */
 char aleatoire(const Historique& moi, const Historique& adv) {
-    return hasard(0.5) ? 'C' : 'D';
+    if (hasard(0.5)) return 'C';
+    return 'D';
 }
 
-/* TIT-FOR-TAT : C au premier tour, puis rejoue le dernier coup de l'adversaire */
+/* TIT-FOR-TAT commence par coopérer puis recopie le dernier coup de l'adversaire */
 char titForTat(const Historique& moi, const Historique& adv) {
     if (adv.empty()) return 'C';
     return adv.back();
 }
 
-/* TESTER : D au premier tour ; si l'adversaire a déjà joué D, joue TIT-FOR-TAT ; sinon répète C, C, D */
+/* TESTER trahit au premier tour pour tester l'adversaire : s'il riposte, il passe en TIT-FOR-TAT, sinon il enchaîne C, C, D */
 char tester(const Historique& moi, const Historique& adv) {
     if (moi.empty()) return 'D';
-    if (std::find(adv.begin(), adv.end(), 'D') != adv.end()) return adv.back();
-    return moi.size() % 3 == 0 ? 'D' : 'C';
+    if (aDejaTrahi(adv)) return adv.back();
+    if (moi.size() % 3 == 0) return 'D';
+    return 'C';
 }
 
-/* JOSS : comme TIT-FOR-TAT, mais remplace C par D une fois sur dix */
+/* JOSS joue comme TIT-FOR-TAT mais trahit une fois sur dix quand il devrait coopérer */
 char joss(const Historique& moi, const Historique& adv) {
-    char coup = adv.empty() ? 'C' : adv.back();
-    if (coup == 'C' && hasard(0.1)) return 'D';
+    char coup = titForTat(moi, adv);
+    if (coup == 'C' && hasard(0.1)) coup = 'D';
     return coup;
 }
 
-/* ALL-C : joue toujours C */
+/* ALL-C coopère à chaque tour */
 char allC(const Historique& moi, const Historique& adv) {
     return 'C';
 }
 
-/* RANCUNIER : joue C tant que l'adversaire n'a jamais joué D, puis D pour toujours */
+/* RANCUNIER coopère jusqu'à la première trahison de l'adversaire, puis trahit jusqu'à la fin */
 char rancunier(const Historique& moi, const Historique& adv) {
-    if (std::find(adv.begin(), adv.end(), 'D') != adv.end()) return 'D';
+    if (aDejaTrahi(adv)) return 'D';
     return 'C';
 }
 
-/* MAJORITAIRE : joue le coup que l'adversaire a joué le plus souvent depuis le début (C au premier tour et en cas d'égalité) */
+/* MAJORITAIRE compte les C et les D de l'adversaire et joue le coup le plus fréquent (C en cas d'égalité) */
 char majoritaire(const Historique& moi, const Historique& adv) {
-    int nbD = std::count(adv.begin(), adv.end(), 'D');
-    int nbC = adv.size() - nbD;
-    return nbD > nbC ? 'D' : 'C';
+    int nbC = 0;
+    int nbD = 0;
+    for (char coup : adv) {
+        if (coup == 'C') nbC++;
+        else nbD++;
+    }
+    if (nbD > nbC) return 'D';
+    return 'C';
 }
 
-/* Les cinq stratégies du cours (étape 1) */
+/* Population de l'étape 1 : les cinq stratégies vues en cours */
 std::vector<Joueur> populationCours() {
-    return {{"ALL-D", allD}, {"RANDOM", aleatoire}, {"TIT-FOR-TAT", titForTat}, {"TESTER", tester}, {"JOSS", joss}};
+    std::vector<Joueur> joueurs;
+    joueurs.push_back({"ALL-D", allD});
+    joueurs.push_back({"RANDOM", aleatoire});
+    joueurs.push_back({"TIT-FOR-TAT", titForTat});
+    joueurs.push_back({"TESTER", tester});
+    joueurs.push_back({"JOSS", joss});
+    return joueurs;
 }
 
-/* Les cinq stratégies du cours plus ALL-C et RANCUNIER (étapes 2 et 3) */
+/* Population des étapes 2 et 3 : celles du cours plus ALL-C, RANCUNIER et MAJORITAIRE */
 std::vector<Joueur> populationElargie() {
     std::vector<Joueur> joueurs = populationCours();
     joueurs.push_back({"ALL-C", allC});
