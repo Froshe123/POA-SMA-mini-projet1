@@ -1,13 +1,13 @@
 #include <cstdlib>
 #include "strategies.hpp"
 
-/* Renvoie true avec une probabilité p (on tire un nombre entre 0 et 999) */
+/* Renvoie true avec une probabilité p */
 bool hasard(double p) {
     int tirage = rand() % 1000;
     return tirage < p * 1000;
 }
 
-/* Regarde si l'adversaire a joué D au moins une fois depuis le début */
+/* Vrai si l'adversaire a déjà trahi au moins une fois */
 bool aDejaTrahi(const Historique& adv) {
     for (char coup : adv) {
         if (coup == 'D') return true;
@@ -15,24 +15,24 @@ bool aDejaTrahi(const Historique& adv) {
     return false;
 }
 
-/* ALL-D trahit à chaque tour */
+/* ALL-D : trahit tout le temps */
 char allD(const Historique& moi, const Historique& adv) {
     return 'D';
 }
 
-/* RANDOM joue C ou D à pile ou face */
+/* RANDOM : joue au hasard */
 char aleatoire(const Historique& moi, const Historique& adv) {
     if (hasard(0.5)) return 'C';
     return 'D';
 }
 
-/* TIT-FOR-TAT commence par coopérer puis recopie le dernier coup de l'adversaire */
+/* TIT-FOR-TAT : coopère au début, puis copie le dernier coup de l'adversaire */
 char titForTat(const Historique& moi, const Historique& adv) {
     if (adv.empty()) return 'C';
     return adv.back();
 }
 
-/* TESTER trahit au premier tour pour tester l'adversaire : s'il riposte, il passe en TIT-FOR-TAT, sinon il enchaîne C, C, D */
+/* TESTER : trahit au début ; si l'autre a riposté, fait comme TIT-FOR-TAT, sinon joue C, C, D */
 char tester(const Historique& moi, const Historique& adv) {
     if (moi.empty()) return 'D';
     if (aDejaTrahi(adv)) return adv.back();
@@ -40,25 +40,25 @@ char tester(const Historique& moi, const Historique& adv) {
     return 'C';
 }
 
-/* JOSS joue comme TIT-FOR-TAT mais trahit une fois sur dix quand il devrait coopérer */
+/* JOSS : comme TIT-FOR-TAT, mais trahit une fois sur dix */
 char joss(const Historique& moi, const Historique& adv) {
     char coup = titForTat(moi, adv);
     if (coup == 'C' && hasard(0.1)) coup = 'D';
     return coup;
 }
 
-/* ALL-C coopère à chaque tour */
+/* ALL-C : coopère tout le temps */
 char allC(const Historique& moi, const Historique& adv) {
     return 'C';
 }
 
-/* RANCUNIER coopère jusqu'à la première trahison de l'adversaire, puis trahit jusqu'à la fin */
+/* RANCUNIER : coopère jusqu'à ce que l'adversaire trahisse, puis trahit jusqu'à la fin */
 char rancunier(const Historique& moi, const Historique& adv) {
     if (aDejaTrahi(adv)) return 'D';
     return 'C';
 }
 
-/* MAJORITAIRE compte les C et les D de l'adversaire et joue le coup le plus fréquent (C en cas d'égalité) */
+/* MAJORITAIRE : joue le coup que l'adversaire a le plus joué */
 char majoritaire(const Historique& moi, const Historique& adv) {
     int nbC = 0;
     int nbD = 0;
@@ -70,7 +70,7 @@ char majoritaire(const Historique& moi, const Historique& adv) {
     return 'C';
 }
 
-/* Population de l'étape 1 : les cinq stratégies vues en cours */
+/* Les 5 stratégies du cours */
 std::vector<Joueur> populationCours() {
     std::vector<Joueur> joueurs;
     joueurs.push_back({"ALL-D", allD});
@@ -81,7 +81,7 @@ std::vector<Joueur> populationCours() {
     return joueurs;
 }
 
-/* Population des étapes 2 et 3 : celles du cours plus ALL-C, RANCUNIER et MAJORITAIRE */
+/* Les 5 du cours + mes 3 stratégies */
 std::vector<Joueur> populationElargie() {
     std::vector<Joueur> joueurs = populationCours();
     joueurs.push_back({"ALL-C", allC});

@@ -3,7 +3,7 @@
 #include <utility>
 #include "tournoi.hpp"
 
-/* Points gagnés selon la matrice du cours (3/3, 0/5, 5/0, 2/2) */
+/* Points gagnés pendant un tour (matrice du cours) */
 int gain(char moi, char adv) {
     if (moi == 'C' && adv == 'C') return 3;
     if (moi == 'C' && adv == 'D') return 0;
@@ -11,7 +11,7 @@ int gain(char moi, char adv) {
     return 2;
 }
 
-/* Avec du bruit, le coup peut être inversé par erreur ; sans bruit on ne tire rien pour ne pas décaler le hasard des autres tournois */
+/* Inverse le coup de temps en temps, seulement s'il y a du bruit */
 char appliquerBruit(char coup, double bruit) {
     if (bruit <= 0.0) return coup;
     if (hasard(bruit)) {
@@ -21,7 +21,7 @@ char appliquerBruit(char coup, double bruit) {
     return coup;
 }
 
-/* Nombre de tours d'une partie : 200 avec l'horizon fixe, sinon on continue tant que le tirage de probabilité w réussit */
+/* Nombre de tours d'une partie : 200, ou au hasard avec l'horizon inconnu */
 int longueurPartie(const Regles& regles) {
     if (regles.w <= 0.0) return regles.nbTours;
     int tours = 1;
@@ -29,7 +29,7 @@ int longueurPartie(const Regles& regles) {
     return tours;
 }
 
-/* Fait jouer a contre b pendant nbTours : chacun choisit sans voir le coup de l'autre, puis on compte les points et on met à jour les historiques */
+/* Joue une partie entre a et b et calcule leurs scores */
 void jouerPartie(const Joueur& a, const Joueur& b, int nbTours, double bruit, int& scoreA, int& scoreB) {
     Historique coupsA;
     Historique coupsB;
@@ -45,7 +45,7 @@ void jouerPartie(const Joueur& a, const Joueur& b, int nbTours, double bruit, in
     }
 }
 
-/* Tout le monde affronte tout le monde (sauf soi-même) sur nbParties parties ; les longueurs sont tirées au début pour que chaque paire joue les mêmes parties */
+/* Chaque joueur affronte tous les autres, et on additionne les points */
 std::vector<long> jouerTournoi(const std::vector<Joueur>& joueurs, const Regles& regles) {
     std::vector<int> longueurs;
     for (int p = 0; p < regles.nbParties; p++) {
@@ -67,7 +67,7 @@ std::vector<long> jouerTournoi(const std::vector<Joueur>& joueurs, const Regles&
     return scores;
 }
 
-/* Trie les joueurs du meilleur au moins bon avec un tri à bulles, puis affiche le classement */
+/* Trie les joueurs (tri à bulles) et affiche le classement */
 void afficherClassement(const std::vector<Joueur>& joueurs, const std::vector<long>& scores) {
     std::vector<std::string> noms;
     for (const Joueur& joueur : joueurs) noms.push_back(joueur.nom);

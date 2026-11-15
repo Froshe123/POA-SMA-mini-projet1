@@ -3,7 +3,7 @@
 #include <string>
 #include "tournoi.hpp"
 
-/* Lit le tournoi à lancer et la graine (1 par défaut), règle les paramètres puis affiche le classement */
+/* Lance le tournoi demandé avec la graine choisie (1 par défaut) */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage : ./tournoi base | elargi | bruit | horizon [graine]\n";
