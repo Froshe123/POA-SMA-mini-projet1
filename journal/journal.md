@@ -1,128 +1,61 @@
 # Journal de bord – Tournoi du dilemme du prisonnier itéré
 
-HAI716I – Projet 2 (partie 1) – travail individuel
+HAI716I – Projet 2 (partie 1)
 
 ## 1. Protocole
 
-- **Langage :** C++ (C++17), compilé avec `make`.
-- **Gains :** ceux du cours. C/C = 3/3, C/D = 0/5, D/C = 5/0, D/D = 2/2.
-- **200 tours par partie et 5 parties par paire**, comme dans le tournoi d'Axelrod présenté en cours.
-- **Qui joue contre qui :** chaque stratégie contre chaque autre, mais pas contre elle-même, parce que le sujet dit « chaque stratégie affronte chaque autre ».
-- **Classement :** sur le score total, c'est-à-dire la somme des points contre tous les adversaires.
-- **Graine :** 1 par défaut, fixée avec `srand`, et on peut en donner une autre (`./tournoi base 7`). Avec la même graine, je retrouve exactement les mêmes résultats à chaque lancement. Les résultats de ce journal ont été obtenus sur mon PC : `rand()` ne tire pas les mêmes nombres sur tous les systèmes, donc sur un autre ordinateur les scores peuvent être un peu différents.
-- **Modifications de l'étape 3 :** le bruit (5 %) et l'horizon inconnu (w = 0,995, donc 200 tours en moyenne). Je les ai choisies parce que ce sont les plus simples à coder : le bruit, c'est une fonction de quelques lignes qui inverse un coup, et l'horizon inconnu change seulement la longueur des parties. En plus, elles sont directement liées au cours : la slide 72 pour le bruit (une erreur entre deux TIT-FOR-TAT) et les slides 61-62 pour l'horizon (la récurrence à rebours et l'ombre du futur).
-- **Horizon inconnu :** les longueurs des 5 parties sont tirées une seule fois au début du tournoi, et toutes les paires jouent les mêmes longueurs. Sinon, une stratégie pourrait gagner juste parce qu'elle est tombée sur des parties plus longues.
+- **200 tours, 5 parties par paire** : c'est le format du tournoi d'Axelrod présenté en cours.
+- **Gains** : ceux du cours (3/3 si les deux coopèrent, 5/0 si l'un trahit l'autre, 2/2 si les deux trahissent).
+- **Chacun contre chacun**, mais pas contre soi-même, parce que le sujet dit « chaque stratégie affronte chaque autre ». À la fin, on additionne les points et le plus gros total gagne.
+- **Graine 1** (on peut en mettre une autre avec `./tournoi base 7`) : comme ça, je retrouve exactement les mêmes résultats à chaque lancement.
+- **Modifications retenues** : le bruit (5 % des coups inversés par erreur) et l'horizon inconnu (la partie continue avec une probabilité w = 0,995 après chaque tour, soit 200 tours en moyenne). Ce sont les plus simples à coder, et elles sont liées au cours : slide 72 pour le bruit, slides 61-62 pour l'horizon.
+- **Horizon inconnu** : je tire la longueur des 5 parties une seule fois au début, et toutes les paires jouent les mêmes longueurs. Sinon, une stratégie pourrait gagner juste parce qu'elle est tombée sur des parties plus longues.
 
-## 2. Les stratégies
+## 2. Stratégies
 
-### ALL-D
-- **Règle :** joue toujours D.
-- **Origine :** c'est la stratégie « rationnelle » donnée par la récurrence à rebours (slide 61).
-- **Bien contre :** les stratégies qui ne punissent pas : ALL-C (5000 points, le maximum possible) et RANDOM (environ 3500).
-- **Mal contre :** les stratégies qui ripostent, contre lesquelles elle ne gagne que 2 points par tour (environ 2000 sur un match).
-- **Pourquoi :** elle ne se fait jamais avoir, mais elle ne profite jamais de la coopération.
+### Celles du cours, plus ALL-C
 
-### RANDOM
-- **Règle :** C ou D à pile ou face.
-- **Origine :** le témoin du tournoi d'Axelrod.
-- **Bien contre :** ALL-C, qui coopère quoi qu'il arrive.
-- **Mal contre :** ALL-D et RANCUNIER, qui la punissent tout le temps (environ 1000 points contre chacun).
-- **Pourquoi :** elle ne réagit à rien, donc elle ne sait ni coopérer ni se défendre.
+| Stratégie | Règle | Origine | Bien contre | Mal contre (pourquoi) |
+|---|---|---|---|---|
+| ALL-D | trahit toujours | récurrence à rebours (slide 61) | ALL-C, RANDOM | ceux qui ripostent (2 points par tour seulement) |
+| ALL-C (ajoutée) | coopère toujours, l'inverse d'ALL-D | la stratégie naïve | les gentilles | tout le monde l'exploite (0 point contre ALL-D) |
+| RANDOM | C ou D au hasard | témoin d'Axelrod | ALL-C | ALL-D, RANCUNIER (punie tout le temps) |
+| TIT-FOR-TAT | C au début, puis copie l'autre | Rapoport, gagnant en 1980 | les gentilles | ALL-D, JOSS (échos de punitions) |
+| TESTER | D au début ; si l'autre a déjà trahi, copie-le, sinon C, C, D | tournoi d'Axelrod | ALL-C (ne riposte jamais) | TIT-FOR-TAT (alternance D/C) |
+| JOSS | TIT-FOR-TAT qui trahit 1 fois sur 10 | Johann Joss, Axelrod | ALL-C, MAJORITAIRE | TIT-FOR-TAT, RANCUNIER (punissent ses trahisons) |
 
-### TIT-FOR-TAT
-- **Règle :** C au premier tour, puis recopie le dernier coup de l'adversaire.
-- **Origine :** Anatol Rapoport, gagnant du tournoi d'Axelrod en 1980.
-- **Bien contre :** les stratégies gentilles (ALL-C, RANCUNIER, MAJORITAIRE), avec qui elle coopère tout le temps (3000 points).
-- **Mal contre :** ALL-D, contre qui elle perd le premier tour puis tout le monde trahit, et JOSS, qui déclenche des punitions en écho.
-- **Pourquoi :** elle copie l'adversaire, donc elle ne le bat jamais en duel, mais elle profite bien de la coopération.
+### Mes nouvelles stratégies
 
-### TESTER
-- **Règle :** D au premier tour ; si l'adversaire a déjà joué D, elle fait comme TIT-FOR-TAT ; sinon elle répète C, C, D.
-- **Origine :** stratégie du tournoi d'Axelrod, présentée dans le cours. La slide dit « si l'adversaire riposte » sans dire quand ; j'ai choisi « si l'adversaire a joué D au moins une fois ».
-- **Bien contre :** ALL-C, qui ne riposte jamais (3670 points).
-- **Mal contre :** TIT-FOR-TAT. Les deux se renvoient la trahison en alternance (D, C, D, C…), donc chacune ne fait que 2,5 points par tour au lieu de 3.
-- **Pourquoi :** son D du premier tour exploite les naïfs, mais il casse la coopération avec ceux qui ripostent.
+**RANCUNIER** coopère jusqu'à la première trahison de l'adversaire, puis trahit jusqu'à la fin de la partie. C'est le « Grim Trigger », une stratégie classique des jeux répétés. Avec les gentilles, elle coopère tout le long. Contre RANDOM, elle marche très bien : dès que RANDOM trahit une fois, elle trahit pour toujours et gagne 5 points à chaque fois que RANDOM coopère. Par contre, elle est nulle contre TESTER : TESTER trahit au premier tour, donc RANCUNIER ne coopère plus jamais avec lui. En gros, elle punit très fort mais ne pardonne jamais.
 
-### JOSS
-- **Règle :** comme TIT-FOR-TAT, mais trahit une fois sur dix quand elle devrait coopérer.
-- **Origine :** Johann Joss, tournoi d'Axelrod.
-- **Bien contre :** ALL-C et MAJORITAIRE, qui tolèrent ses trahisons de temps en temps.
-- **Mal contre :** TIT-FOR-TAT et RANCUNIER : chaque trahison au hasard déclenche des punitions.
-- **Pourquoi :** elle essaie de gagner un peu plus que TIT-FOR-TAT, mais ses trahisons cassent la coopération.
-
-### ALL-C (nouvelle)
-- **Règle :** joue toujours C.
-- **Origine :** la stratégie naïve, qui coopère sans condition.
-- **Bien contre :** les stratégies gentilles (3000 points).
-- **Mal contre :** ALL-D (0 point !), RANDOM, TESTER et JOSS, qui l'exploitent.
-- **Pourquoi :** elle ne se défend jamais.
-
-### RANCUNIER (nouvelle)
-- **Règle :** C jusqu'à la première trahison de l'adversaire, puis D jusqu'à la fin.
-- **Origine :** le « Grim Trigger », stratégie classique des jeux répétés.
-- **Bien contre :** les stratégies gentilles (3000 points), et RANDOM (environ 3500 points) : dès que RANDOM trahit une fois, RANCUNIER trahit pour toujours et gagne 5 points à chaque fois que RANDOM coopère.
-- **Mal contre :** TESTER, qui trahit au premier tour : après ça, il n'y a plus jamais de coopération.
-- **Pourquoi :** il punit très fort, mais il ne pardonne jamais.
-
-### MAJORITAIRE (nouvelle)
-- **Règle :** joue le coup que l'adversaire a joué le plus souvent depuis le début (C au début et en cas d'égalité).
-- **Origine :** stratégie des tournois du dilemme itéré (« soft majority »). Je l'ai prise parce que c'est la seule qui regarde toute la partie et pas seulement le dernier coup.
-- **Bien contre :** les gentilles (3000) et JOSS : un D isolé ne change pas la majorité, donc elle ne part pas dans un écho de punitions comme TIT-FOR-TAT.
-- **Mal contre :** ALL-D et RANDOM.
-- **Pourquoi :** elle est patiente, mais elle réagit lentement.
+**MAJORITAIRE** regarde tous les coups de l'adversaire depuis le début et joue celui qu'il a joué le plus souvent (C au premier tour et en cas d'égalité). C'est une stratégie connue des tournois du dilemme itéré (« soft majority »). Je l'ai choisie parce que c'est la seule qui regarde toute la partie, et pas seulement le dernier coup. Avec les gentilles, elle coopère tout le long. Contre JOSS, elle s'en sort mieux que TIT-FOR-TAT, parce qu'un D isolé ne change pas la majorité, donc elle ne part pas dans des échos de punitions. Par contre, elle est lente à réagir : si l'adversaire se met à trahir, elle continue de coopérer un moment avant de changer.
 
 ## 3. Étape 1 : tournoi de base
 
-Commande : `./tournoi base`
-
 ![Classement de l'étape 1](captures/01-base.png)
 
-| Rang | Stratégie | Score |
-|---|---|---|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
+**TIT-FOR-TAT ne gagne pas, c'est ALL-D**, et TIT-FOR-TAT finit juste derrière.
 
-J'ai relancé avec d'autres graines (`./tournoi base 7`, `./tournoi base 123`) : ALL-D reste premier. TIT-FOR-TAT et TESTER sont à quelques points l'un de l'autre, donc leur ordre peut changer.
-
-**TIT-FOR-TAT gagne-t-il ?** Non. C'est ALL-D qui gagne, et TIT-FOR-TAT est juste derrière, à quelques points de TESTER.
-
-ALL-D gagne surtout grâce à RANDOM : il lui prend environ 3500 points (5 points quand RANDOM coopère, 2 quand il trahit, donc 3,5 par tour en moyenne), alors que TIT-FOR-TAT n'en prend qu'environ 2500, parce qu'il recopie les trahisons de RANDOM au lieu de profiter de ses coopérations. TIT-FOR-TAT récupère des points contre TESTER (2500 contre 2000 pour ALL-D), mais pas assez.
+La grosse différence vient de RANDOM. ALL-D gagne 5 points quand RANDOM coopère et 2 quand elle trahit, donc environ 3500 points sur le match. TIT-FOR-TAT, lui, recopie les trahisons de RANDOM au lieu de profiter de ses coopérations, et ne fait qu'environ 2500 points. TIT-FOR-TAT rattrape un peu contre TESTER (2500 contre 2000 pour ALL-D), mais ça ne suffit pas.
 
 Pourquoi c'est différent de 1980 :
-1. **Il n'y a qu'une seule stratégie gentille ici.** TIT-FOR-TAT est la seule qui ne trahit jamais en premier, donc elle n'a personne avec qui coopérer. En 1980, il y avait 14 programmes, et beaucoup étaient gentils. La slide 69 le dit : TIT-FOR-TAT ne gagne que s'il rencontre assez de stratégies qui « pensent comme lui ».
-2. **Pas de match contre soi-même.** Chez Axelrod, chaque programme jouait aussi contre son jumeau. TIT-FOR-TAT contre TIT-FOR-TAT, c'est 3000 points, le maximum en coopérant, alors que ALL-D contre ALL-D, c'est seulement 2000.
-3. **La punition vaut 2 ici, contre 1 chez Axelrod.** Quand tout le monde trahit, on gagne plus que chez Axelrod, ce qui aide ALL-D, qui passe presque tous ses tours en D contre D.
+- ici, TIT-FOR-TAT est la seule stratégie gentille (qui ne trahit jamais en premier), donc elle n'a personne avec qui coopérer. En 1980, il y avait beaucoup de stratégies gentilles, et c'est justement dans ce cas que TIT-FOR-TAT gagne (slide 69) ;
+- chez Axelrod, chaque stratégie jouait aussi contre son jumeau. TIT-FOR-TAT contre TIT-FOR-TAT fait 3000 points, ALL-D contre ALL-D seulement 2000. Moi, je n'ai pas mis ce match ;
+- dans le cours, la punition D/D vaut 2, alors qu'elle valait 1 chez Axelrod. Quand tout le monde trahit, on gagne plus, et ça aide ALL-D.
 
-## 4. Étape 2 : nouvelles stratégies
-
-Commande : `./tournoi elargi`
+## 4. Étape 2 : avec les nouvelles stratégies
 
 ![Classement de l'étape 2](captures/02-elargi.png)
 
-| Rang | Stratégie | Score | Rang à l'étape 1 |
-|---|---|---|---|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
+- **MAJORITAIRE gagne de justesse** devant ALL-D et RANCUNIER : il y a moins de 150 points d'écart entre les trois, donc c'est presque une égalité.
+- **ALL-D reste en haut seulement grâce à ALL-C**, à qui il prend 5000 points (le maximum). Sans ce match, il serait loin derrière, parce que contre les autres stratégies gentilles il ne fait qu'environ 2000 points.
+- **RANCUNIER et MAJORITAIRE** marchent bien parce qu'elles coopèrent à fond avec les gentilles tout en sachant se défendre. RANCUNIER gagne en plus beaucoup de points contre RANDOM.
+- **TIT-FOR-TAT passe 4e** : elle perd des points contre JOSS à cause des échos de punitions, alors que MAJORITAIRE laisse passer un D isolé.
+- **ALL-C finit dernière**, puisque tout le monde peut l'exploiter.
 
-**Ce qui change :**
-- **ALL-D, RANCUNIER et MAJORITAIRE sont presque à égalité en haut du classement** (quelques dizaines de points d'écart sur plus de 18000), et leur ordre change selon la graine.
-- **ALL-D reste en haut grâce à ALL-C** : il lui prend 5000 points, le maximum. Sans ce match, il serait loin derrière RANCUNIER et MAJORITAIRE, parce que contre les autres stratégies gentilles il ne fait qu'environ 2000 points.
-- **RANCUNIER et MAJORITAIRE marchent bien** parce qu'elles coopèrent à fond avec les gentilles (3000 points), tout en se défendant.
-- **TIT-FOR-TAT passe 4e** : elle perd des points contre JOSS à cause des échos de punitions, là où MAJORITAIRE ne réagit pas à un D isolé.
-- **ALL-C est dernière** : tout le monde peut l'exploiter.
+## 5. Étape 3 : bruit et horizon inconnu
 
-## 5. Étape 3 : modifications du tournoi
-
-### Prédictions (écrites avant de lancer `./tournoi bruit` et `./tournoi horizon`)
+### Prédictions
 
 **Bruit 5 % :**
 - TIT-FOR-TAT va baisser : une erreur déclenche une suite de punitions en écho (slide 72) avec JOSS, TESTER, RANCUNIER et MAJORITAIRE.
@@ -136,32 +69,40 @@ Commande : `./tournoi elargi`
 - Les scores totaux vont changer, parce que les parties n'ont plus 200 tours pile.
 - Les trois premiers sont très proches, donc leur ordre peut changer.
 
-### Résultats : bruit
+### Bruit
 
-*(à compléter après avoir lancé le tournoi)*
+![Classement avec bruit](captures/03-bruit.png)
 
-### Résultats : horizon inconnu
+- **Juste** : TIT-FOR-TAT baisse, RANCUNIER finit 1er, ALL-D reste 2e, et ALL-C reste dernière en perdant encore plus de points.
+- **Faux** : MAJORITAIRE passe de la 1re à la 4e place.
+- **Pas prévu** : JOSS monte à la 3e place.
 
-*(à compléter après avoir lancé le tournoi)*
+Pour MAJORITAIRE, je n'avais pensé qu'aux erreurs de l'adversaire, qui ne changent pas la majorité. Mais quand c'est elle qui fait une erreur (son C devient D), RANCUNIER la punit jusqu'à la fin. Et comme MAJORITAIRE réagit lentement, elle continue de coopérer tant que RANCUNIER a plus de C que de D, donc elle se fait exploiter pendant longtemps. Sa patience, qui l'aidait sans bruit, devient un défaut.
+
+RANCUNIER, lui, devient une sorte d'ALL-D dès la première erreur. Avec du bruit, presque tout le monde finit par faire une erreur contre lui, donc il trahit souvent, et trahir souvent marche bien quand la coopération casse partout. C'est aussi pour ça qu'ALL-D reste juste derrière.
+
+Pour JOSS, je pense que le bruit casse parfois ses blocages en D contre D avec TIT-FOR-TAT ou TESTER (un D peut redevenir C par erreur). TIT-FOR-TAT recule à cause des échos de punitions (slide 72), et ALL-C perd encore plus parce que RANCUNIER la punit pour toujours dès sa première erreur.
+
+### Horizon inconnu
+
+![Classement avec horizon inconnu](captures/04-horizon.png)
+
+- **Juste** : à partir de la 4e place, le classement est exactement le même qu'à l'étape 2. Seuls les trois premiers, qui étaient déjà presque à égalité, changent de place.
+- **Juste aussi** : les scores changent. Ils sont plus bas parce que les parties tirées sont plus courtes au total.
+
+C'est logique, parce qu'aucune de mes stratégies ne compte les tours : ne pas savoir quand la partie s'arrête ne change rien à leur façon de jouer. La récurrence à rebours de la slide 61 concerne un joueur qui sait quand c'est le dernier tour et qui en profite pour trahir. Ici, personne ne fait ça, donc l'horizon inconnu change seulement la longueur des parties. Pour voir un vrai effet, il faudrait une stratégie qui trahit au 200e tour.
 
 ## 6. Impasses
 
-- **Une première version trop compliquée.** Au début, j'avais fait une version avec des classes, des pointeurs intelligents, une matrice des scores, huit stratégies et quatre modifications possibles. Ça marchait, mais je ne la comprenais pas assez bien pour l'expliquer. J'ai tout repris avec des fonctions simples, des boucles et un tri à bulles, et j'ai gardé seulement deux modifications.
-- **ALL-C trop proche d'ALL-D.** Au départ, mes deux nouvelles stratégies étaient ALL-C et RANCUNIER. Je trouvais qu'ALL-C, c'était juste l'inverse d'ALL-D, donc j'ai ajouté MAJORITAIRE, qui regarde toute la partie. J'ai quand même gardé ALL-C, parce qu'elle montre bien qui profite des stratégies naïves.
-- **`rand()` change selon l'ordinateur.** J'ai commencé sur Mac puis je suis passé sur un PC Windows. Avec la même graine, `rand()` ne donne pas les mêmes nombres sur les deux systèmes, donc mes scores ont un peu changé. Le classement reste à peu près le même, et sur une même machine les résultats sont toujours identiques, donc j'ai gardé `rand()` et j'ai refait mes captures sur le PC.
-- **L'interprétation de TESTER.** La slide dit « si l'adversaire riposte, joue TIT-FOR-TAT » sans préciser quand. J'ai choisi « dès que l'adversaire a joué D au moins une fois ».
-- **Les longueurs en horizon inconnu.** Si chaque paire tire ses propres longueurs de parties, une stratégie qui tombe sur des parties longues marque plus de points sans que ce soit grâce à sa règle. J'ai donc tiré les longueurs une seule fois pour tout le tournoi.
-- **Erreur avec git.** J'ai d'abord tapé `git init` avec l'adresse du dépôt, ce qui a créé un dossier `https:` dans mon projet. Je l'ai supprimé, puis j'ai relié le dépôt avec `git remote add origin`.
+- **Première version trop compliquée** (classes, pointeurs intelligents, quatre modifications) : je l'ai refaite avec des fonctions simples, des boucles et un tri à bulles.
+- **ALL-C trop proche d'ALL-D** : au début, mes nouvelles stratégies étaient ALL-C et RANCUNIER. ALL-C étant juste l'inverse d'ALL-D, j'ai ajouté MAJORITAIRE.
+- **`rand()` différent entre Mac et PC** : avec la même graine, j'ai eu des scores un peu différents, donc j'ai refait les captures sur le PC.
+- **Pas de compilateur sur le PC** : j'ai installé WinLibs (GCC pour Windows) et ajouté son dossier au PATH. `make clean` ne marche pas sous Windows (pas de `rm`), donc j'utilise `del tournoi.exe`.
+- **Horizon inconnu** : au début, chaque paire tirait ses propres longueurs de parties, ce qui pouvait fausser le classement. Je les tire maintenant une seule fois pour tout le tournoi.
+- **`git init` avec l'URL** : ça a créé un dossier `https:` dans le projet. Je l'ai supprimé, puis j'ai fait `git remote add origin`.
 
 ## 7. Séances
 
-### Vendredi 13 novembre
-- Lecture du sujet et du cours 4.
-- Première version, trop compliquée, puis squelette plus simple.
-- Moteur du tournoi, les cinq stratégies du cours, RANCUNIER, ALL-C puis MAJORITAIRE.
-- Premier push sur GitHub.
-
-### Samedi 14 novembre
-- Code simplifié pour qu'il soit plus lisible.
-- README et journal.
-- Prédictions de l'étape 3, écrites avant de lancer les tournois.
+- **13 novembre** : lecture du sujet, première version trop compliquée, puis version simple avec toutes les stratégies. Premier push.
+- **14 novembre** : code simplifié, README, journal et prédictions de l'étape 3. Installation du compilateur sur le PC, lancement des tournois, captures et résultats de l'étape 3.
+- **15 novembre** : vérification du code.
